@@ -454,7 +454,7 @@ function buildLightCell(args: { wp: Waypoint; at: Date }): CellResult {
   const { at } = args;
   const state = getLightState(at);
   const hour = at.getHours();
-  const label = hour >= 6 && hour < 18 ? "Day" : hour >= 5 || hour < 19 ? "Dawn/Dusk" : "Night";
+  const label = hour >= 6 && hour < 18 ? "Day" : (hour >= 5 && hour < 6) || (hour >= 18 && hour < 19) ? "Dawn/Dusk" : "Night";
   return { state, tooltip: `Hour ${pad2(hour)}:00 -> ${label} (${state})` };
 }
 
@@ -664,10 +664,14 @@ export default function App() {
     }
   }, [buildGrid]);
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount only. Store fetchAndBuild in a ref so the effect
+  // doesn't need it in its dependency array (avoids re-fetching on every
+  // dep/ret change; the second effect handles those rebuilds without a fetch).
+  const fetchAndBuildRef = useRef(fetchAndBuild);
+  fetchAndBuildRef.current = fetchAndBuild;
   useEffect(() => {
-    fetchAndBuild();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchAndBuildRef.current();
+  }, []);
 
   // Rebuild grid (no re-fetch) when times change
   useEffect(() => {
